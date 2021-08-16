@@ -8,14 +8,36 @@ import Container from 'react-bootstrap/Container'
 import { useForm } from 'react-hook-form';
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect } from 'react';
-
+import { useEffect, useState } from 'react';
+import Alert from 'react-bootstrap/Alert'
+import Toast from 'react-bootstrap/Toast'
 
 let countReders = 0;
 
 
 export default function Register({ categories }) {
+    const [dataExists, setDataExists] = useState(false)
+
+    const { names } = categories;
     const router = useRouter();
+
+    if (!names.length) {
+
+        return (
+            <div><Alert variant='danger'>
+                erro occured. please try again later
+                {'          '}
+                <Link href={{
+                    pathname: '/login'
+                }}>
+                    <a > <Button variant="outline-primary">click here to login</Button></a>
+                </Link>
+
+            </Alert>
+            </div>
+        )
+    }
+
     const { register, watch, handleSubmit, formState: { errors }, } = useForm();
 
     // how many times does the page render
@@ -29,23 +51,31 @@ export default function Register({ categories }) {
 
     const onSubmit = data => {
         axios.post('http://localhost:3000/api/register', {
-            name: watch('name'),
-            lastName: watch('lastName'),
-            email: watch('email'),
-            password: watch('password'),
-            businessName: watch('businessName'),
-            indutry: watch('industry'),
-            adres: watch('adres'),
-            zipCode: watch('zipCode'),
-            number: watch('number'),
-            city: watch('city'),
-            accept: watch('accept')
+            name: data.name,
+            lastName: data.lastName,
+            email: data.email,
+            password: data.password,
+            businessName: data.businessName,
+            industry: data.industry,
+            adres: data.adres,
+            zipCode: data.zipCode,
+            number: data.number,
+            city: data.city,
+            accept: data.accep,
 
         }).then(function (response) {
             const res = response.data;
 
             if (res.created) {
                 router.push('/login');
+            }
+
+            if (!res._continue) {
+                setDataExists(true)
+
+                setTimeout(() => {
+                    setDataExists(false)
+                }, 5000)
             }
         }).catch(function (error) {
             console.log(`found error in catch callback ${error}`);
@@ -60,6 +90,16 @@ export default function Register({ categories }) {
 
                 <div className={style.form}>
                     <h1>Vensyan</h1>
+                    {
+                        setDataExists ? <Toast show={dataExists}>
+                            <Toast.Header>
+                                <strong className="me-auto">Error</strong>
+                            </Toast.Header>
+                            <Toast.Body>Kies een andere email adres</Toast.Body>
+                        </Toast> : null
+                    }
+
+                    <br />
                     <div className={style.formControl}>
                         <Form onSubmit={handleSubmit(onSubmit, onErrors)}>
                             <Container>
@@ -68,9 +108,12 @@ export default function Register({ categories }) {
                                         <Form.Group className="mb-3" controlId="name">
                                             <Form.Label>Name</Form.Label>
                                             <Form.Control type="text" placeholder="Enter name" {...register('name', {
-                                                required: true
+                                                required: true, pattern: {
+                                                    value: /^\S+$/
+                                                }
                                             })} />
                                             {errors.name?.type === 'required' && <small className='text-danger'>Naam is verplicht</small>}
+                                            {errors.name?.type === 'pattern' && <small className='text-danger'>spaties niet toegestaan</small>}
                                         </Form.Group>
 
                                     </Col>
@@ -128,7 +171,7 @@ export default function Register({ categories }) {
 
                                     <option></option>
                                     {
-                                        categories.map((e) => {
+                                        names.map((e) => {
                                             return <option key={e}>{e}</option>
                                         })
                                     }
@@ -141,8 +184,13 @@ export default function Register({ categories }) {
                                     <Row className='g-2'>
                                         <Col md>
                                             <Form.Label>Adres</Form.Label>
-                                            <Form.Control type="text" placeholder="Enter Street" {...register('streetName', { required: true })} />
-                                            {errors.streetName?.type === 'required' && <small className='text-danger'>Straatnaam is verplicht</small>}
+                                            <Form.Control type="text" placeholder="Enter Street" {...register('adres', {
+                                                required: true, pattern: {
+                                                    value: /^([^0-9]*)$/
+                                                }
+                                            })} />
+                                            {errors.adres?.type === 'required' && <small className='text-danger'>Straatnaam is verplicht</small>}
+                                            {errors.adres?.type === 'pattern' && <small className='text-danger'>Straatnaam is mag geen cijfer bevatten</small>}
                                         </Col>
                                         <Col>
                                             <Form.Label>zip code</Form.Label>
@@ -192,22 +240,3 @@ export default function Register({ categories }) {
     )
 }
 
-export async function getStaticProps(context) {
-
-    const response = await fetch('http://localhost:3000/api/register');
-    const categories = await response.json();
-
-
-    if (!categories) {
-        return {
-            redirect: {
-                destination: 'google.com',
-
-            }
-        }
-    }
-
-    return {
-        props: { categories }, // will be passed to the page component as props
-    }
-}

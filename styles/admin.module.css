@@ -1,0 +1,15 @@
+.container {
+    background-color: #E8EDF5;
+    height: 100vh;
+    width: 100vw;
+}
+
+.sidebar {
+    background-color: #323B46;
+    height: 100vh;
+}
+
+.sidebar h1 {
+    text-align: center;
+    color: #FAFBFD;
+}

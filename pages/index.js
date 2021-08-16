@@ -1,8 +1,13 @@
 import Head from 'next/head'
 import Register from './register';
-
+import { firestore } from '../firebase/init'
 
 export default function Home({ data }) {
+
+  if (!data) {
+    return <h1>Oeps</h1>
+  }
+
   return (
     <div>
       <Head>
@@ -18,21 +23,18 @@ export default function Home({ data }) {
   )
 }
 
-export async function getStaticProps(context) {
+export async function getServerSideProps(context) {
+  let data = {}
 
-  const response = await fetch('http://localhost:3000/api/register');
-  const data = await response.json();
-
-
-  if (!data) {
+  const cityRef = firestore.collection('categories').doc('types');
+  const doc = await cityRef.get();
+  if (!doc.exists) {
     return {
-      redirect: {
-        destination: 'google.com',
-
-      }
+      notFound: true,
     }
+  } else {
+    data = doc.data();
   }
-
   return {
     props: { data }, // will be passed to the page component as props
   }

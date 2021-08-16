@@ -5,13 +5,21 @@ import { useForm } from "react-hook-form";
 import Link from 'next/link'
 import axios from 'axios'
 import { useRouter } from 'next/router'
+import bcrypt from 'bcryptjs'
+import { useState } from 'react'
+import Alert from 'react-bootstrap/Alert';
+import Spinner from 'react-bootstrap/Spinner'
 
-function Login({ user }) {
+
+function Login({ data }) {
+
+    const [success, setSuccess] = useState(false)
+    const [loading, setLoading] = useState(false)
     const router = useRouter()
     const { register, handleSubmit, watch, formState: { errors } } = useForm();
 
     const onSubmit = data => {
-
+        setLoading(true)
         const user = {
             email: data.email,
             password: data.password
@@ -27,12 +35,23 @@ function Login({ user }) {
             url: 'http://localhost:3000/api/login',
             data: user,
             headers: headers
-        }).then((res)=>console.log(res));
+        }).then((res) => {
+            const { message } = res.data
+
+            if (message == 'username or password is incorrect') {
+                setLoading(false)
+                setSuccess(true)
+            } else {
+                router.push('/app/admin')
+            }
+        })
+
+        setTimeout(() => {
+            setSuccess(false)
+        }, 5000)
     }
 
-    const onErrors = errors => {
-        console.warn('input errors: ', errors)
-    }
+    const onErrors = errors => { }
 
     return (
         <>
@@ -67,9 +86,27 @@ function Login({ user }) {
                                 <Form.Check type="checkbox" label="Remember me" {...register('remember')} />
                             </Form.Group>
                             <Button variant="primary" type="submit">
-                                Submit
+                                {
+                                    loading ? <Spinner animation="grow" role="status" size='sm'>
+                                        <span className="visually-hidden">Loading...</span>
+                                    </Spinner> : 'Login'
+                                }
                             </Button>
                         </Form>
+                        {
+
+                            success ?
+                                <div>
+                                    <br />
+                                    <Alert variant='danger'>
+                                        Incorrect username or password
+                                    </Alert>
+                                </div> : null
+
+                        }
+
+
+
                     </div>
                     <br />
                     <hr />
@@ -86,10 +123,14 @@ function Login({ user }) {
 
 Login.getInitialProps = async (context) => {
 
-    // const response = await fetch('http://localhost:3000/api/login');
-    // const user = await response.json();
+    const res = await axios.get('http://localhost:3000/api/login', {
+        headers: {
+            'authorization': bcrypt.hashSync('message', 10)
+        }
+    });
+    const data = res.data
 
-    return {}
+    return { data }
 }
 
 export default Login;
